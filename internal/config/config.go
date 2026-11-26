@@ -26,15 +26,35 @@ type Command struct {
 	Pause bool `json:"pause,omitempty"`
 }
 
+// Opener is one way to open a project, such as nvim or Claude Code. Key picks
+// it when painel asks; it defaults to the first letter of the name.
+type Opener struct {
+	Name string   `json:"name"`
+	Key  string   `json:"key,omitempty"`
+	Cmd  []string `json:"cmd"`
+}
+
+// KeyOrDefault is Key, or the name's first letter.
+func (o Opener) KeyOrDefault() string {
+	if o.Key != "" {
+		return o.Key
+	}
+	if o.Name == "" {
+		return ""
+	}
+	return strings.ToLower(o.Name[:1])
+}
+
 // Projects says where to find project folders and what opens them.
 type Projects struct {
 	// Roots are folders whose subfolders are projects, such as ~/Projects.
 	Roots []string `json:"roots"`
 	// Extra are single project folders outside the roots, listed first.
 	Extra []string `json:"extra"`
-	// Open runs inside the project on enter; Alt runs on y.
-	Open []string `json:"open"`
-	Alt  []string `json:"alt"`
+	// OpenWith runs inside the project on enter. With more than one,
+	// painel asks which. Alt runs on y.
+	OpenWith []Opener `json:"open_with"`
+	Alt      []string `json:"alt"`
 }
 
 type Link struct {
@@ -115,9 +135,9 @@ func Default() Config {
 			{Name: "btop", Alias: "top", Desc: "processes", Cmd: []string{"btop"}},
 		},
 		Projects: Projects{
-			Roots: []string{"~/Projects"},
-			Open:  []string{"nvim", "."},
-			Alt:   []string{"yazi"},
+			Roots:    []string{"~/Projects"},
+			OpenWith: []Opener{{Name: "nvim", Key: "v", Cmd: []string{"nvim", "."}}},
+			Alt:      []string{"yazi"},
 		},
 		Browser: []string{"xdg-open"},
 		Search:  "https://www.google.com/search?q=",
@@ -139,10 +159,10 @@ type file struct {
 	Tools    *[]Command `json:"tools"`
 	Scripts  *[]Command `json:"scripts"`
 	Projects *struct {
-		Roots *[]string `json:"roots"`
-		Extra *[]string `json:"extra"`
-		Open  *[]string `json:"open"`
-		Alt   *[]string `json:"alt"`
+		Roots    *[]string `json:"roots"`
+		Extra    *[]string `json:"extra"`
+		OpenWith *[]Opener `json:"open_with"`
+		Alt      *[]string `json:"alt"`
 	} `json:"projects"`
 	Links   *[]LinkGroup `json:"links"`
 	Browser *[]string    `json:"browser"`
@@ -184,7 +204,7 @@ func Load(path string) (Config, error) {
 	if p := f.Projects; p != nil {
 		set(&cfg.Projects.Roots, p.Roots)
 		set(&cfg.Projects.Extra, p.Extra)
-		set(&cfg.Projects.Open, p.Open)
+		set(&cfg.Projects.OpenWith, p.OpenWith)
 		set(&cfg.Projects.Alt, p.Alt)
 	}
 	set(&cfg.Links, f.Links)
@@ -229,8 +249,20 @@ func (c Config) validate() error {
 			alias(l.Alias, l.Name)
 		}
 	}
-	if len(c.Projects.Open) == 0 {
-		problems = append(problems, "projects.open is empty")
+	if len(c.Projects.OpenWith) == 0 {
+		problems = append(problems, "projects.open_with is empty")
+	}
+	keys := map[string]string{}
+	for _, o := range c.Projects.OpenWith {
+		if o.Name == "" || len(o.Cmd) == 0 {
+			problems = append(problems, "each projects.open_with entry needs a name and a cmd")
+			continue
+		}
+		k := o.KeyOrDefault()
+		if prev, ok := keys[k]; ok {
+			problems = append(problems, fmt.Sprintf("projects.open_with key %q is used by both %s and %s", k, prev, o.Name))
+		}
+		keys[k] = o.Name
 	}
 	if len(c.Browser) == 0 {
 		problems = append(problems, "browser is empty")

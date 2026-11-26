@@ -7,8 +7,8 @@ in one place. Type a name or alias and press enter. The command is `painel`.
   when they exit.
 - **scripts**: sysup, flakeup… with `pause`, the output stays on screen until
   you press enter.
-- **projects**: every folder in the roots, with its git branch. Enter opens
-  nvim there, `y` opens yazi.
+- **projects**: every folder in the roots, with its git branch. Enter asks
+  how to open it (nvim or Claude Code, say), `y` opens yazi.
 - **links**: open in the browser.
 
 ## Keys
@@ -28,6 +28,9 @@ painel starts in the prompt.
 | h j k l     | move between and in panels |
 | enter       | run                        |
 | y           | open a project in yazi     |
+
+Opening a project asks `open <project> with [v] nvim [c] claude`: press a key,
+or ←→ and enter; esc cancels. With one entry in `open_with`, it just opens.
 | r           | find projects again        |
 | / i :       | back to the prompt         |
 | q / ctrl+c  | quit                       |
@@ -43,7 +46,7 @@ out keeps its default; a list in the file replaces the default list. See
 | `user`, `host` | shown in the header; default to the current ones          |
 | `theme`    | `#rrggbb` colors: fg, fg_bright, muted, border, selection, accent, red, orange, yellow, green, aqua, blue |
 | `tools`, `scripts` | `{name, alias?, desc?, cmd: [...], pause?}`          |
-| `projects` | `roots`, `extra` folders, and the `open`/`alt` commands, run inside the project |
+| `projects` | `roots`, `extra` folders; `open_with`: `[{name, key?, cmd}]`, the ways to open a project (key defaults to the name's first letter); `alt`: the command for `y`. All run inside the project |
 | `links`    | groups: `{name, links: [{name, alias?, url}]}`               |
 | `browser`  | command that opens a URL, given as its last argument         |
 | `search`   | URL prefix for text that matches nothing; `""` turns it off  |

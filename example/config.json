@@ -15,7 +15,10 @@
   "projects": {
     "roots": ["~/Projects"],
     "extra": ["~/.config/nix-config"],
-    "open": ["nvim", "."],
+    "open_with": [
+      { "name": "nvim", "key": "v", "cmd": ["nvim", "."] },
+      { "name": "claude", "cmd": ["claude"] }
+    ],
     "alt": ["yazi"]
   },
   "links": [
