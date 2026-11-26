@@ -1,0 +1,32 @@
+{
+  "user": "thiago",
+  "host": "t14",
+  "theme": { "accent": "#8ec07c" },
+  "tools": [
+    { "name": "nvim", "alias": "v", "desc": "editor", "cmd": ["nvim"] },
+    { "name": "yazi", "alias": "y", "desc": "files", "cmd": ["yazi"] },
+    { "name": "btop", "alias": "top", "desc": "processes", "cmd": ["btop"] },
+    { "name": "kew", "alias": "m", "desc": "music", "cmd": ["kew"] }
+  ],
+  "scripts": [
+    { "name": "sysup", "alias": "su", "desc": "pull, rebuild, firmware", "cmd": ["sysup"], "pause": true },
+    { "name": "flakeup", "alias": "fu", "desc": "update inputs through a PR", "cmd": ["flakeup"], "pause": true }
+  ],
+  "projects": {
+    "roots": ["~/Projects"],
+    "extra": ["~/.config/nix-config"],
+    "open": ["nvim", "."],
+    "alt": ["yazi"]
+  },
+  "links": [
+    {
+      "name": "dev",
+      "links": [
+        { "name": "github", "alias": "gh", "url": "https://github.com" },
+        { "name": "packages", "alias": "np", "url": "https://search.nixos.org/packages" }
+      ]
+    }
+  ],
+  "browser": ["xdg-open"],
+  "search": "https://www.google.com/search?q="
+}
