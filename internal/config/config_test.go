@@ -48,17 +48,20 @@ func TestFileOverridesDefaults(t *testing.T) {
 	if !cfg.Scripts[0].Pause {
 		t.Error("pause not read")
 	}
-	if len(cfg.Projects.Open) == 0 {
-		t.Error("projects.open left out should keep its default")
+	if len(cfg.Projects.OpenWith) == 0 {
+		t.Error("projects.open_with left out should keep its default")
 	}
 }
 
 func TestRejectsBadConfig(t *testing.T) {
 	for name, body := range map[string]string{
-		"unknown field":    `{"tool": []}`,
-		"no cmd":           `{"tools": [{"name": "x"}]}`,
-		"duplicate alias":  `{"tools": [{"name": "a", "alias": "x", "cmd": ["a"]}], "links": [{"name": "g", "links": [{"name": "b", "alias": "x", "url": "u"}]}]}`,
-		"link without url": `{"links": [{"name": "g", "links": [{"name": "b"}]}]}`,
+		"unknown field":      `{"tool": []}`,
+		"no cmd":             `{"tools": [{"name": "x"}]}`,
+		"duplicate alias":    `{"tools": [{"name": "a", "alias": "x", "cmd": ["a"]}], "links": [{"name": "g", "links": [{"name": "b", "alias": "x", "url": "u"}]}]}`,
+		"link without url":   `{"links": [{"name": "g", "links": [{"name": "b"}]}]}`,
+		"opener without cmd": `{"projects": {"open_with": [{"name": "nvim"}]}}`,
+		"same opener key":    `{"projects": {"open_with": [{"name": "code", "cmd": ["code"]}, {"name": "claude", "cmd": ["claude"]}]}}`,
+		"old open key":       `{"projects": {"open": ["nvim", "."]}}`,
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := Load(write(t, body)); err == nil {

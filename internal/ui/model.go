@@ -42,6 +42,11 @@ type Model struct {
 	matches []int // indices into items, best first
 	sel     int   // index into matches
 
+	// choosing is the project painel is asking how to open, if any; choice
+	// is the opener picked in projects.open_with.
+	choosing *Item
+	choice   int
+
 	width, height int
 	now           time.Time
 	status        string
@@ -154,6 +159,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if msg.Type == tea.KeyCtrlC {
 			return m, tea.Quit
 		}
+		if m.choosing != nil {
+			return m.chooseKey(msg)
+		}
 		if m.mode == modePrompt {
 			return m.promptKey(msg)
 		}
@@ -187,7 +195,7 @@ func (m Model) promptKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		sel := m.sel
 		m.refilter()
 		if len(matches) > 0 {
-			return m, m.run(m.items[matches[sel]], false)
+			return m.activate(m.items[matches[sel]])
 		}
 		if u, ok := asURL(q); ok {
 			return m, m.open(u, u)
@@ -256,16 +264,63 @@ func (m Model) normalKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case "h", "left", "shift+tab":
 		m.focus = (m.focus + len(m.panels) - 1) % len(m.panels)
 	case "enter":
-		return m, m.run(m.items[p.items[p.cursor]], false)
+		return m.activate(m.items[p.items[p.cursor]])
 	case "y":
-		if it := m.items[p.items[p.cursor]]; it.Kind == Project {
-			return m, m.run(it, true)
+		if it := m.items[p.items[p.cursor]]; it.Kind == Project && len(m.cfg.Projects.Alt) > 0 {
+			return m, m.run(it, m.cfg.Projects.Alt)
 		}
 	case "r":
 		m.load()
 		m.setStatus("projects reloaded", false)
 	}
 	return m, nil
+}
+
+// activate runs an item. A project with more than one way to open it asks
+// which first.
+func (m Model) activate(it Item) (tea.Model, tea.Cmd) {
+	if it.Kind != Project {
+		return m, m.run(it, nil)
+	}
+	openers := m.cfg.Projects.OpenWith
+	switch len(openers) {
+	case 0:
+		return m, nil
+	case 1:
+		return m, m.run(it, openers[0].Cmd)
+	}
+	m.choosing, m.choice = &it, 0
+	return m, nil
+}
+
+// chooseKey answers "open <project> with?": an opener's key picks it, arrows
+// or h/l move, enter opens, esc or q cancels.
+func (m Model) chooseKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	openers := m.cfg.Projects.OpenWith
+	k := msg.String()
+	for i, o := range openers {
+		if k == o.KeyOrDefault() {
+			m.choice = i
+			return m.choose()
+		}
+	}
+	switch k {
+	case "esc", "q":
+		m.choosing = nil
+	case "enter":
+		return m.choose()
+	case "left", "h", "shift+tab", "up", "k":
+		m.choice = (m.choice + len(openers) - 1) % len(openers)
+	case "right", "l", "tab", "down", "j":
+		m.choice = (m.choice + 1) % len(openers)
+	}
+	return m, nil
+}
+
+func (m Model) choose() (tea.Model, tea.Cmd) {
+	it := *m.choosing
+	m.choosing = nil
+	return m, m.run(it, m.cfg.Projects.OpenWith[m.choice].Cmd)
 }
 
 func (m *Model) setStatus(s string, isErr bool) {
@@ -277,18 +332,15 @@ func (m *Model) setStatus(s string, isErr bool) {
 const pauseScript = `"$@"; s=$?; printf '\n\033[2m%s exited with %d, press enter to go back\033[0m' "$0" "$s"; read -r _`
 
 // run hands the terminal to the item's command until it exits, or opens the
-// item's link. alt opens a project with projects.alt instead of projects.open.
-func (m Model) run(it Item, alt bool) tea.Cmd {
+// item's link. A project runs with, inside its folder.
+func (m Model) run(it Item, with []string) tea.Cmd {
 	var argv []string
 	dir := ""
 	switch it.Kind {
 	case Link:
 		return m.open(it.Name, it.URL)
 	case Project:
-		argv = m.cfg.Projects.Open
-		if alt && len(m.cfg.Projects.Alt) > 0 {
-			argv = m.cfg.Projects.Alt
-		}
+		argv = with
 		dir = it.Path
 	default:
 		argv = it.Cmd

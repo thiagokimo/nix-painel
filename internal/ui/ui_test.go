@@ -1,6 +1,8 @@
 package ui
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -22,7 +24,15 @@ func testConfig(t *testing.T) config.Config {
 		{Name: "sysup", Alias: "su", Desc: "pull, rebuild, firmware", Cmd: []string{"sysup"}, Pause: true},
 		{Name: "flakeup", Alias: "fu", Desc: "update inputs through a PR", Cmd: []string{"flakeup"}, Pause: true},
 	}
-	cfg.Projects.Roots = []string{t.TempDir()}
+	root := t.TempDir()
+	if err := os.Mkdir(filepath.Join(root, "nix-config"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	cfg.Projects.Roots = []string{root}
+	cfg.Projects.OpenWith = []config.Opener{
+		{Name: "nvim", Key: "v", Cmd: []string{"nvim", "."}},
+		{Name: "claude", Cmd: []string{"claude"}},
+	}
 	cfg.Links = []config.LinkGroup{{Name: "dev", Links: []config.Link{
 		{Name: "github", Alias: "gh", URL: "https://github.com"},
 		{Name: "noogle", Alias: "ng", URL: "https://noogle.dev"},
@@ -176,6 +186,61 @@ func TestViewFitsTheTerminal(t *testing.T) {
 				if w := lipgloss.Width(l); w > size[0] {
 					t.Errorf("%v %v: line %d is %d wide: %q", size, keys, i, w, l)
 				}
+			}
+		}
+	}
+}
+
+func TestProjectAsksHowToOpen(t *testing.T) {
+	m := New(testConfig(t))
+	m = press(m, "n", "i", "x", "-")
+	next, cmd := m.Update(key("enter"))
+	m = next.(Model)
+	if cmd != nil || m.choosing == nil || m.choosing.Name != "nix-config" {
+		t.Fatalf("enter on a project should ask first: choosing=%v cmd=%v", m.choosing, cmd != nil)
+	}
+	if v := m.View(); v != "" {
+		t.Fatal("no size yet, so no view")
+	}
+	m = press(m, "l")
+	if m.choice != 1 {
+		t.Errorf("l should move to claude, got %d", m.choice)
+	}
+	m = press(m, "esc")
+	if m.choosing != nil {
+		t.Fatal("esc should cancel")
+	}
+
+	m = press(m, "n", "i", "x", "-", "enter")
+	next, cmd = m.Update(key("c"))
+	m = next.(Model)
+	if cmd == nil || m.choosing != nil {
+		t.Fatal("c should open with claude")
+	}
+}
+
+func TestSingleOpenerDoesNotAsk(t *testing.T) {
+	cfg := testConfig(t)
+	cfg.Projects.OpenWith = cfg.Projects.OpenWith[:1]
+	m := press(New(cfg), "n", "i", "x", "-")
+	next, cmd := m.Update(key("enter"))
+	if next.(Model).choosing != nil || cmd == nil {
+		t.Fatal("one opener should run straight away")
+	}
+}
+
+func TestChooserFits(t *testing.T) {
+	for _, w := range []int{30, 80, 140} {
+		m := New(testConfig(t))
+		next, _ := m.Update(tea.WindowSizeMsg{Width: w, Height: 20})
+		m = press(next.(Model), "n", "i", "x", "-", "enter")
+		v := m.View()
+		if !strings.Contains(v, "with") && w >= 80 {
+			t.Errorf("%d: chooser not shown", w)
+		}
+		for i, l := range strings.Split(v, "\n") {
+			if lw := lipgloss.Width(l); lw > w {
+				t.Errorf("%d: line %d is %d wide", w, i, lw)
 			}
 		}
 	}
