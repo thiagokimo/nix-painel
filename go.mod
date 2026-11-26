@@ -1,4 +1,4 @@
-module github.com/thiagokimo/painel
+module github.com/thiagokimo/nix-painel
 
 go 1.24.5
 

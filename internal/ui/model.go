@@ -11,7 +11,7 @@ import (
 
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/thiagokimo/painel/internal/config"
+	"github.com/thiagokimo/nix-painel/internal/config"
 )
 
 type mode int

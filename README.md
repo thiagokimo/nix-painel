@@ -1,7 +1,7 @@
-# painel
+# nix-painel
 
 A terminal home screen: the tools, scripts, projects and links I use every day,
-in one place. Type a name or alias and press enter.
+in one place. Type a name or alias and press enter. The command is `painel`.
 
 - **tools**: nvim, yazi, btop… painel hands them the terminal and comes back
   when they exit.
@@ -53,7 +53,7 @@ Aliases must be unique across everything.
 ## Nix
 
 ```nix
-inputs.painel.url = "github:thiagokimo/painel";
+inputs.painel.url = "github:thiagokimo/nix-painel";
 
 # Home Manager
 imports = [inputs.painel.homeManagerModules.default];
@@ -63,4 +63,4 @@ programs.painel = {
 };
 ```
 
-`nix run`, `nix develop`, and `nix flake check` (builds and runs the tests).
+`go install github.com/thiagokimo/nix-painel/cmd/painel@latest`, or `nix run`, `nix develop`, and `nix flake check` (builds and runs the tests).

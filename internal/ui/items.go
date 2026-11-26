@@ -5,8 +5,8 @@ import (
 	"strings"
 
 	"github.com/sahilm/fuzzy"
-	"github.com/thiagokimo/painel/internal/config"
-	"github.com/thiagokimo/painel/internal/projects"
+	"github.com/thiagokimo/nix-painel/internal/config"
+	"github.com/thiagokimo/nix-painel/internal/projects"
 )
 
 type Kind int

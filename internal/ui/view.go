@@ -6,7 +6,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/charmbracelet/x/ansi"
-	"github.com/thiagokimo/painel/internal/config"
+	"github.com/thiagokimo/nix-painel/internal/config"
 )
 
 type styles struct {

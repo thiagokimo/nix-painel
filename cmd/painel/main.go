@@ -8,8 +8,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/thiagokimo/painel/internal/config"
-	"github.com/thiagokimo/painel/internal/ui"
+	"github.com/thiagokimo/nix-painel/internal/config"
+	"github.com/thiagokimo/nix-painel/internal/ui"
 )
 
 var version = "dev"
