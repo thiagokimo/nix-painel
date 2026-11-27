@@ -49,7 +49,11 @@ func (m Model) View() string {
 	footer := m.footer()
 	bodyH := m.height - lipgloss.Height(header) - lipgloss.Height(footer)
 	body := m.body(bodyH)
-	return lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
+	screen := lipgloss.JoinVertical(lipgloss.Left, header, body, footer)
+	if m.choosing != nil {
+		return overlay(screen, m.openDialog(), m.width, m.height, m.styles.border)
+	}
+	return screen
 }
 
 func (m Model) header() string {
@@ -65,9 +69,6 @@ func (m Model) header() string {
 
 func (m Model) footer() string {
 	s := m.styles
-	if m.choosing != nil {
-		return m.chooser()
-	}
 	sign := s.accent.Render("❯ ")
 	if m.mode == modeNormal {
 		sign = s.muted.Render("❯ ")
@@ -293,23 +294,4 @@ func (m Model) box(p *panel, w, h int) string {
 	}
 	sb.WriteString("\n" + b.Render("╰"+strings.Repeat("─", max(inner, 0))+"╯"))
 	return sb.String()
-}
-
-// chooser asks how to open a project, in place of the prompt:
-//
-//	❯ open nix-config with  [v] nvim  [c] claude
-func (m Model) chooser() string {
-	s := m.styles
-	q := s.accent.Render("❯ ") + s.fg.Render("open ") + s.kind[Project].Bold(true).Render(m.choosing.Name) + s.fg.Render(" with ")
-	for i, o := range m.cfg.Projects.OpenWith {
-		picked := i == m.choice
-		label := s.bg(s.muted, picked).Render(" ["+o.KeyOrDefault()+"] ") + s.bg(s.bright.Bold(picked), picked).Render(o.Name+" ")
-		q += " " + label
-	}
-	var keys []string
-	for _, o := range m.cfg.Projects.OpenWith {
-		keys = append(keys, o.KeyOrDefault())
-	}
-	hint := s.muted.Render(strings.Join(keys, "/") + " pick · ←→ move · enter open · esc cancel")
-	return ansi.Truncate(q, m.width, "…") + "\n" + ansi.Truncate(hint, m.width, "…")
 }

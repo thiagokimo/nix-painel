@@ -202,9 +202,13 @@ func TestProjectAsksHowToOpen(t *testing.T) {
 	if v := m.View(); v != "" {
 		t.Fatal("no size yet, so no view")
 	}
-	m = press(m, "l")
+	m = press(m, "j")
 	if m.choice != 1 {
-		t.Errorf("l should move to claude, got %d", m.choice)
+		t.Errorf("j should move to claude, got %d", m.choice)
+	}
+	m = press(m, "k")
+	if m.choice != 0 {
+		t.Errorf("k should move back to nvim, got %d", m.choice)
 	}
 	m = press(m, "esc")
 	if m.choosing != nil {
@@ -235,13 +239,42 @@ func TestChooserFits(t *testing.T) {
 		next, _ := m.Update(tea.WindowSizeMsg{Width: w, Height: 20})
 		m = press(next.(Model), "n", "i", "x", "-", "enter")
 		v := m.View()
-		if !strings.Contains(v, "with") && w >= 80 {
-			t.Errorf("%d: chooser not shown", w)
+		if !strings.Contains(v, "open nix-config") && w >= 40 {
+			t.Errorf("%d: dialog not shown", w)
+		}
+		if n := len(strings.Split(v, "\n")); n != 20 {
+			t.Errorf("%d: %d lines, want 20", w, n)
 		}
 		for i, l := range strings.Split(v, "\n") {
 			if lw := lipgloss.Width(l); lw > w {
 				t.Errorf("%d: line %d is %d wide", w, i, lw)
 			}
 		}
+	}
+}
+
+func TestDialogFloatsInTheMiddle(t *testing.T) {
+	m := New(testConfig(t))
+	next, _ := m.Update(tea.WindowSizeMsg{Width: 100, Height: 24})
+	m = press(next.(Model), "n", "i", "x", "-", "enter")
+	lines := strings.Split(m.View(), "\n")
+	top := -1
+	for i, l := range lines {
+		if strings.Contains(l, "╭─ open nix-config") {
+			top = i
+		}
+	}
+	if top < 6 || top > 14 {
+		t.Fatalf("dialog top edge at line %d, want it near the middle", top)
+	}
+	if !strings.Contains(lines[top+1], "[v] nvim") || !strings.Contains(lines[top+2], "[c] claude") {
+		t.Errorf("openers not one per line:\n%s\n%s", lines[top+1], lines[top+2])
+	}
+	if !strings.Contains(lines[top+3], "esc cancel") {
+		t.Errorf("keys not on the bottom edge: %s", lines[top+3])
+	}
+	// The screen behind is still there, around the dialog.
+	if !strings.Contains(lines[0], "painel") {
+		t.Errorf("header gone: %q", lines[0])
 	}
 }
