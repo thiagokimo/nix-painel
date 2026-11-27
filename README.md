@@ -29,8 +29,17 @@ painel starts in the prompt.
 | enter       | run                        |
 | y           | open a project in yazi     |
 
-Opening a project asks `open <project> with [v] nvim [c] claude`: press a key,
-or ←→ and enter; esc cancels. With one entry in `open_with`, it just opens.
+Opening a project floats a dialog over the screen, which goes dim behind it:
+
+```
+╭─ open nix-config ─────────────────────  main ─╮
+│ ❯ [v] nvim     nvim .                          │
+│   [c] claude   claude                          │
+╰─ v/c pick · ↑↓ move · enter open · esc cancel ─╯
+```
+
+Press a key, or move with ↑↓ (or j/k) and press enter; esc cancels. With one
+entry in `open_with`, it just opens.
 | r           | find projects again        |
 | / i :       | back to the prompt         |
 | q / ctrl+c  | quit                       |
